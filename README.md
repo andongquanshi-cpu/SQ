@@ -41,7 +41,7 @@ npm start       # 启动服务，默认端口 8787
 - 第一次进入：填昵称，自己设 4–8 位数字 PIN，再填邀请码。以后只填昵称和 PIN。一个旅行本最多两人。
 - 数据保存在 `apps/photo-share-demo/data/`：`db.json` 存成员、备注、地点和标签，`photos/` 存照片。这个目录不进 git，删掉它就是清空旅行本，邀请码也会重新生成。
 - 开发时可以分开运行：`npm run server` 启动后端，`npm run dev` 启动 Vite（端口 5173，`/api` 转发到 8787）。
-- 局域网地址是 http，iPhone 上"添加到桌面"不完整；电脑关机后手机也无法访问。这两点要部署到 HTTPS 云端才能解决。
+- 局域网地址是 http，iPhone 上"添加到桌面"不完整；电脑关机后手机也无法访问。这两点要部署到 HTTPS 云端才能解决，步骤见 [deploy/README.md](apps/photo-share-demo/deploy/README.md)。
 
 ## 生成旅行资料
 

@@ -20,6 +20,11 @@ function pinMatches(member: StoredMember, pin: string): boolean {
 // 简单防暴力猜 PIN：同一昵称连续错 5 次锁 5 分钟（只存在内存里）。
 const failures = new Map<string, { count: number; until: number }>();
 
+// 邀请码只有 6 位数字：所有人共用一个计数，连续错 10 次就暂停加入 10 分钟，防止在公网上被穷举。
+const INVITE_MAX_FAILURES = 10;
+let inviteFailures = 0;
+let inviteLockedUntil = 0;
+
 export function joinOrLogin(input: { name?: unknown; pin?: unknown; inviteCode?: unknown }): { token: string; member: StoredMember } {
   const name = typeof input.name === 'string' ? input.name.trim() : '';
   const pin = typeof input.pin === 'string' ? input.pin : '';
@@ -40,8 +45,18 @@ export function joinOrLogin(input: { name?: unknown; pin?: unknown; inviteCode?:
     return { token: createSession(existing.id), member: existing };
   }
 
-  if (input.inviteCode !== db.trip.inviteCode) throw new HttpError(403, 'forbidden', '邀请码不对');
+  // 满员后直接拒绝，不再校验邀请码，公网上就没有可猜的入口了。
   if (db.members.length >= MAX_MEMBERS) throw new HttpError(403, 'trip_full', '这本旅行本已经有两位成员');
+  if (Date.now() < inviteLockedUntil) throw new HttpError(429, 'forbidden', '邀请码错误次数太多，10 分钟后再试');
+  if (input.inviteCode !== db.trip.inviteCode) {
+    inviteFailures += 1;
+    if (inviteFailures >= INVITE_MAX_FAILURES) {
+      inviteLockedUntil = Date.now() + 10 * 60_000;
+      inviteFailures = 0;
+    }
+    throw new HttpError(403, 'forbidden', '邀请码不对');
+  }
+  inviteFailures = 0;
 
   const salt = randomId(16);
   const member: StoredMember = { id: randomId(8), name, joinedAt: new Date().toISOString(), pinSalt: salt, pinHash: hashPin(pin, salt) };

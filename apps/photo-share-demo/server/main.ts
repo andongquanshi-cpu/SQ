@@ -3,7 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { db, onChange } from './store.ts';
+import { db, onChange, DATA_DIR } from './store.ts';
 import { HttpError, sendJson, readBody, readJson } from './http.ts';
 import { joinOrLogin, logout, requireMember, SESSION_COOKIE } from './auth.ts';
 import * as photos from './photos.ts';
@@ -133,11 +133,17 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  const lan = Object.values(os.networkInterfaces()).flat()
-    .filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => `http://${i!.address}:${PORT}`);
+// 不设 HOST 时监听所有网卡，方便局域网测试；服务器上设 HOST=127.0.0.1，只让 Caddy 从本机转发进来。
+const HOST = process.env.HOST;
+
+server.listen({ port: PORT, host: HOST }, () => {
   console.log(`旅行本「${db.trip.name}」已启动`);
   console.log(`本机: http://localhost:${PORT}`);
-  for (const u of lan) console.log(`局域网: ${u}`);
+  if (!HOST || HOST === '0.0.0.0') {
+    const lan = Object.values(os.networkInterfaces()).flat()
+      .filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => `http://${i!.address}:${PORT}`);
+    for (const u of lan) console.log(`局域网: ${u}`);
+  }
+  console.log(`数据目录: ${DATA_DIR}`);
   console.log(`邀请码: ${db.trip.inviteCode}（成员 ${db.members.length}/2）`);
 });

@@ -19,7 +19,10 @@ export interface Db {
   version: number;
 }
 
-export const DATA_DIR = path.resolve(import.meta.dirname, '..', 'data');
+// 默认放在项目里的 data/；服务器上用 DATA_DIR 指到代码目录之外，更新代码不会碰到照片。
+export const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(import.meta.dirname, '..', 'data');
 export const PHOTO_DIR = path.join(DATA_DIR, 'photos');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
