@@ -5,11 +5,9 @@
 # 重复运行是安全的：已经装好的部分会跳过或覆盖成同样的配置，不会动照片数据。
 set -euo pipefail
 
+# 不填域名时先用 http://服务器IP 访问，用于域名审核期间的测试；域名好了再带上域名重新运行一次。
 DOMAIN="${1:-}"
-if [[ -z "$DOMAIN" ]]; then
-  echo "用法: sudo bash server-setup.sh 你的域名（例如 trip.example.com）" >&2
-  exit 1
-fi
+SITE="${DOMAIN:-:80}"
 if [[ $EUID -ne 0 ]]; then
   echo "请用 sudo 运行" >&2
   exit 1
@@ -75,7 +73,7 @@ systemctl enable photo-share
 
 echo "== 写入 Caddy 配置"
 cat > /etc/caddy/Caddyfile <<EOF
-$DOMAIN {
+$SITE {
 	# 不开 gzip：照片本身已经压缩过，开了还可能让实时通知（SSE）被缓冲延迟
 	reverse_proxy 127.0.0.1:8787
 }
@@ -84,4 +82,9 @@ systemctl reload caddy || systemctl restart caddy
 
 echo
 echo "完成。下一步在你自己的电脑上运行 deploy/upload.ps1 上传代码。"
-echo "如果 https://$DOMAIN 打不开，检查：域名解析是否指向本机公网 IP，云控制台防火墙是否放行 80 和 443 端口。"
+if [[ -n "$DOMAIN" ]]; then
+  echo "如果 https://$DOMAIN 打不开，检查：域名解析是否指向本机公网 IP，云控制台防火墙是否放行 80 和 443 端口。"
+else
+  echo "现在没有域名，用 http://服务器公网IP 访问。这是不加密的临时地址，只用来测试，PIN 别用常用密码。"
+  echo "域名审核通过并加好解析后，运行 sudo bash server-setup.sh 你的域名，就会切换到 HTTPS。"
+fi
